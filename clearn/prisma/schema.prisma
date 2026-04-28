@@ -1,0 +1,233 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Enums
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum League {
+  BRONZE
+  SILVER
+  GOLD
+  DIAMOND
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TAP_TO_BUILD
+  FILL_BLANK
+  CODE_OUTPUT
+  BUG_FIX
+  WRITE_CODE
+}
+
+enum ShopItem {
+  STREAK_FREEZE
+  HEART_REFILL
+  DOUBLE_XP
+}
+
+// User and Auth Models
+model User {
+  id                    String          @id @default(cuid())
+  name                  String?
+  email                 String?         @unique
+  emailVerified         DateTime?
+  image                 String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  // Game Stats
+  totalXp               Int             @default(0)
+  weeklyXp              Int             @default(0)
+  gems                  Int             @default(0)
+  hearts                Int             @default(5)
+  maxHearts             Int             @default(5)
+  streak                Int             @default(0)
+  lastActivityDate      DateTime?
+  league                League          @default(BRONZE)
+  leagueStartedAt       DateTime        @default(now())
+
+  // Features
+  streakFreezeActive    Boolean         @default(false)
+  streakFreezeEndAt     DateTime?
+  doubleXpActive        Boolean         @default(false)
+  doubleXpEndAt         DateTime?
+
+  // Relations
+  accounts              Account[]
+  sessions              Session[]
+  lessonProgress        UserLessonProgress[]
+  questionAttempts      QuestionAttempt[]
+  xpEvents              XpEvent[]
+  shopTransactions      ShopTransaction[]
+
+  @@index([email])
+  @@index([league])
+  @@index([weeklyXp])
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Curriculum Models
+model Unit {
+  id          String    @id @default(cuid())
+  unitNumber  Int       @unique
+  title       String
+  description String
+  color       String    // Hex color for UI
+  lessons     Lesson[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([unitNumber])
+}
+
+model Lesson {
+  id            String       @id @default(cuid())
+  unitId        String
+  lessonNumber  Int
+  title         String
+  description   String
+  difficulty    Int          @default(1) // 1-5
+  xpReward      Int          @default(10)
+  questions     Question[]
+  userProgress  UserLessonProgress[]
+  
+  unit          Unit         @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([unitId, lessonNumber])
+  @@index([unitId])
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  lessonId      String
+  questionNumber Int
+  type          QuestionType
+  text          String       @db.Text
+  explanation   String?      @db.Text
+  
+  // For multiple choice, tap to build, etc.
+  options       String?      @db.Text // JSON array of options
+  
+  // For code questions
+  codeText      String?      @db.Text
+  testCases     String?      @db.Text // JSON array of test cases
+  
+  lesson        Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  attempts      QuestionAttempt[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([lessonId, questionNumber])
+  @@index([lessonId])
+}
+
+// Progress Models
+model UserLessonProgress {
+  id              String    @id @default(cuid())
+  userId          String
+  lessonId        String
+  completed       Boolean   @default(false)
+  stars           Int       @default(0) // 0-3 stars based on performance
+  xpEarned        Int       @default(0)
+  attempts        Int       @default(0)
+  lastAttemptAt   DateTime?
+  completedAt     DateTime?
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson          Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+}
+
+model QuestionAttempt {
+  id            String    @id @default(cuid())
+  userId        String
+  questionId    String
+  correct       Boolean
+  answer        String?   @db.Text
+  feedback      String?   @db.Text
+  xpGained      Int       @default(0)
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question      Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([questionId])
+}
+
+model XpEvent {
+  id            String    @id @default(cuid())
+  userId        String
+  amount        Int
+  reason        String    // "lesson_complete", "bonus", "achievement", etc.
+  metadata      Json?
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Shop Models
+model ShopTransaction {
+  id            String     @id @default(cuid())
+  userId        String
+  item          ShopItem
+  gemsSpent     Int
+  activeDuration Int?       // In hours, if applicable
+  activeUntil   DateTime?
+
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime   @default(now())
+
+  @@index([userId])
+}
