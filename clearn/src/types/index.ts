@@ -42,6 +42,7 @@ export interface Question {
   text: string;
   explanation?: string;
   options?: string; // JSON stringified array
+  correctAnswer?: string; // JSON string - index for MC, array for tap-to-build, etc.
   codeText?: string;
   testCases?: string; // JSON stringified array
 }

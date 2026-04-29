@@ -6,20 +6,29 @@ import { Button } from "@/components/ui/Button";
 
 interface MultipleChoiceProps {
   question: Question;
+  onAnswer?: (questionId: string, correct: boolean, answer: string) => void;
 }
 
-export const MultipleChoice: React.FC<MultipleChoiceProps> = ({ question }) => {
+export const MultipleChoice: React.FC<MultipleChoiceProps> = ({ question, onAnswer }) => {
   const options = question.options ? JSON.parse(question.options) : [];
+  const correctAnswer = question.correctAnswer ? parseInt(question.correctAnswer) : 0;
   const [selected, setSelected] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
 
   const checkAnswer = () => {
     if (selected === null) {
       setFeedback("Please select an answer.");
       return;
     }
-    const correct = selected === 0;
-    setFeedback(correct ? "Correct!" : "Try again." );
+    const correct = selected === correctAnswer;
+    setIsCorrect(correct);
+    setFeedback(correct ? "Correct!" : `Incorrect. ${question.explanation || "Try again."}`);
+
+    // Call onAnswer callback if provided
+    if (onAnswer) {
+      onAnswer(question.id, correct, selected.toString());
+    }
   };
 
   return (
@@ -31,18 +40,35 @@ export const MultipleChoice: React.FC<MultipleChoiceProps> = ({ question }) => {
             key={index}
             onClick={() => setSelected(index)}
             className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
-              selected === index ? "border-duo-green bg-duo-green/10" : "border-gray-200 bg-white hover:border-gray-400"
+              selected === index
+                ? isCorrect === true && selected === correctAnswer
+                  ? "border-green-500 bg-green-50"
+                  : isCorrect === false && selected !== correctAnswer
+                  ? "border-red-500 bg-red-50"
+                  : "border-duo-green bg-duo-green/10"
+                : "border-gray-200 bg-white hover:border-gray-400"
             }`}
+            disabled={isCorrect !== null}
           >
             {option}
           </button>
         ))}
       </div>
       <div className="mt-6 flex items-center justify-between gap-4">
-        <Button onClick={checkAnswer} variant="primary" size="md">
-          Check Answer
-        </Button>
-        {feedback && <span className="text-sm text-gray-700">{feedback}</span>}
+        {isCorrect === null ? (
+          <Button onClick={checkAnswer} variant="primary" size="md">
+            Check Answer
+          </Button>
+        ) : (
+          <Button onClick={() => { setSelected(null); setFeedback(null); setIsCorrect(null); }} variant="secondary" size="md">
+            Try Again
+          </Button>
+        )}
+        {feedback && (
+          <span className={`text-sm ${isCorrect ? "text-green-700" : "text-red-700"}`}>
+            {feedback}
+          </span>
+        )}
       </div>
     </div>
   );

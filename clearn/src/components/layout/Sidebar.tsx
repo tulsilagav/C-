@@ -11,13 +11,20 @@ import {
   Flame,
   Heart,
   Gem,
+  LogOut,
 } from "lucide-react";
 import { useGameStore } from "@/store/gameStore";
+import { useAuth } from "@/hooks/useAuth";
 import clsx from "clsx";
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const { streak, hearts, gems } = useGameStore();
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut({ callbackUrl: "/" });
+  };
 
   const navItems = [
     { icon: BookOpen, label: "Learn", href: "/learn" },
@@ -64,6 +71,28 @@ export const Sidebar: React.FC = () => {
           );
         })}
       </nav>
+
+      {/* User Info */}
+      <div className="p-4 border-t border-gray-200">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 bg-duo-green rounded-full flex items-center justify-center text-white font-bold">
+            {user?.name?.charAt(0)?.toUpperCase() || "U"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-gray-900 truncate">
+              {user?.name}
+            </p>
+            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="text-gray-400 hover:text-gray-600"
+            title="Sign out"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
+      </div>
 
       {/* Stats */}
       <div className="p-4 border-t border-gray-200 space-y-3">

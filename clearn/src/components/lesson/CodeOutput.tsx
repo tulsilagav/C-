@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/Button";
 
 interface CodeOutputProps {
   question: Question;
+  onAnswer?: (questionId: string, correct: boolean, answer: string) => void;
 }
 
-export const CodeOutput: React.FC<CodeOutputProps> = ({ question }) => {
+export const CodeOutput: React.FC<CodeOutputProps> = ({ question, onAnswer }) => {
   const options = question.options ? JSON.parse(question.options) : [];
   const [selection, setSelection] = useState<number | null>(null);
   const [result, setResult] = useState<string | null>(null);
@@ -18,7 +19,13 @@ export const CodeOutput: React.FC<CodeOutputProps> = ({ question }) => {
       setResult("Choose an output option first.");
       return;
     }
-    setResult(selection === 0 ? "Correct!" : "Not quite — try again.");
+    const correct = selection === parseInt(question.correctAnswer || "0");
+    setResult(correct ? "Correct!" : "Not quite — try again.");
+
+    // Call onAnswer callback if provided
+    if (onAnswer) {
+      onAnswer(question.id, correct, selection.toString());
+    }
   };
 
   return (

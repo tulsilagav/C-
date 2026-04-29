@@ -1,12 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/Button";
+import { useState } from "react";
 
 export default function LoginPage() {
-  const handleOAuthSign = (provider: "google" | "github") => {
-    // This will be implemented with NextAuth signIn function
-    window.location.href = `/api/auth/signin/${provider}`;
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleOAuthSignIn = async (provider: "google" | "github") => {
+    setIsLoading(true);
+    try {
+      await signIn(provider, {
+        callbackUrl: "/learn",
+        redirect: false,
+      });
+      router.push("/learn");
+    } catch (error) {
+      console.error("Sign in error:", error);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -27,19 +42,21 @@ export default function LoginPage() {
 
         <div className="space-y-3">
           <button
-            onClick={() => handleOAuthSign("google")}
-            className="w-full bg-white border-2 border-gray-200 rounded-lg py-3 px-4 font-bold text-gray-900 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2"
+            onClick={() => handleOAuthSignIn("google")}
+            disabled={isLoading}
+            className="w-full bg-white border-2 border-gray-200 rounded-lg py-3 px-4 font-bold text-gray-900 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span>🔵</span>
-            Continue with Google
+            {isLoading ? "Signing in..." : "Continue with Google"}
           </button>
 
           <button
-            onClick={() => handleOAuthSign("github")}
-            className="w-full bg-gray-900 rounded-lg py-3 px-4 font-bold text-white hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2"
+            onClick={() => handleOAuthSignIn("github")}
+            disabled={isLoading}
+            className="w-full bg-gray-900 rounded-lg py-3 px-4 font-bold text-white hover:bg-gray-800 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <span>⚫</span>
-            Continue with GitHub
+            {isLoading ? "Signing in..." : "Continue with GitHub"}
           </button>
         </div>
 
@@ -61,3 +78,4 @@ export default function LoginPage() {
     </div>
   );
 }
+

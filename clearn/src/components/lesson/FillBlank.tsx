@@ -6,9 +6,10 @@ import { Button } from "@/components/ui/Button";
 
 interface FillBlankProps {
   question: Question;
+  onAnswer?: (questionId: string, correct: boolean, answer: string) => void;
 }
 
-export const FillBlank: React.FC<FillBlankProps> = ({ question }) => {
+export const FillBlank: React.FC<FillBlankProps> = ({ question, onAnswer }) => {
   const [answer, setAnswer] = useState("");
   const [feedback, setFeedback] = useState<string | null>(null);
 
@@ -17,7 +18,13 @@ export const FillBlank: React.FC<FillBlankProps> = ({ question }) => {
       setFeedback("Please fill in your answer.");
       return;
     }
-    setFeedback("Answer submitted. Review on the next step.");
+    const correct = answer.trim().toLowerCase() === (question.correctAnswer || "").toLowerCase();
+    setFeedback(correct ? "Correct!" : `Incorrect. ${question.explanation || "Try again."}`);
+
+    // Call onAnswer callback if provided
+    if (onAnswer) {
+      onAnswer(question.id, correct, answer);
+    }
   };
 
   return (

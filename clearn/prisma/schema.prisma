@@ -3,10 +3,11 @@
 
 generator client {
   provider = "prisma-client-js"
+  engineType = "binary"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
 }
 
 // Enums
@@ -83,12 +84,12 @@ model Account {
   type               String
   provider           String
   providerAccountId  String
-  refresh_token      String?  @db.Text
-  access_token       String?  @db.Text
+  refresh_token      String? 
+  access_token       String? 
   expires_at         Int?
   token_type         String?
   scope              String?
-  id_token           String?  @db.Text
+  id_token           String? 
   session_state      String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -145,15 +146,16 @@ model Question {
   lessonId      String
   questionNumber Int
   type          QuestionType
-  text          String       @db.Text
-  explanation   String?      @db.Text
+  text          String      
+  explanation   String?     
   
   // For multiple choice, tap to build, etc.
-  options       String?      @db.Text // JSON array of options
+  options       String?      // JSON array of options
+  correctAnswer String?      // JSON string - index for MC, array for tap-to-build, etc.
   
   // For code questions
-  codeText      String?      @db.Text
-  testCases     String?      @db.Text // JSON array of test cases
+  codeText      String?     
+  testCases     String?      // JSON array of test cases
   
   lesson        Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   attempts      QuestionAttempt[]
@@ -191,8 +193,8 @@ model QuestionAttempt {
   userId        String
   questionId    String
   correct       Boolean
-  answer        String?   @db.Text
-  feedback      String?   @db.Text
+  answer        String?  
+  feedback      String?  
   xpGained      Int       @default(0)
 
   user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
